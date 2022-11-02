@@ -10,7 +10,7 @@ class tempFile:
         os.system(f"rm -rf {self.fileName}")
 
     def __init__(self, name: str, fromString: str):
-        self.fileName = name + ".tmp"
+        self.fileName = name
         with open(self.fileName, "w") as f:
             f.write(fromString)
 

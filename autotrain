@@ -1,4 +1,48 @@
 #!/bin/bash
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
-amspython $SCRIPT_DIR/AutoTraining.py $1
+############################################################
+# Help                                                     #
+############################################################
+Help()
+{
+   # Display Help
+   echo "AutoTrain help: "
+   echo
+   echo "Syntax: "
+   echo "autotrain"
+   echo "autotrain [file]"
+   echo "autotrain -h"
+   echo
+   echo "options:"
+   echo "[file]     Starts the optimization defined in the json file. Saves the log in autotrain.log"
+   echo "-h         Print this Help."
+   echo
+   echo "If nothing is provided, the program starts normally."
+   echo
+}
+
+############################################################
+# Process the input options. Add options as needed.        #
+############################################################
+# Get the options
+while getopts ":h" option; do
+   case $option in
+      h) # display Help
+         Help
+         exit;;
+   esac
+done
+
+############################################################
+############################################################
+# Main program                                             #
+############################################################
+############################################################
+
+if [ $# -eq 0 ]
+  then
+    amspython $SCRIPT_DIR/AutoTraining.py
+else
+    amspython $SCRIPT_DIR/AutoTraining.py $1 > 'autotrain.log'
+fi

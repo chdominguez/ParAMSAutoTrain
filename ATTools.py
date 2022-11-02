@@ -1,10 +1,4 @@
-from cmath import pi
-from macpath import split
-from select import select
 from time import sleep
-from tokenize import String
-from typing_extensions import Required
-from xml.etree.ElementTree import PI
 from ATShared import *
 import os
 import scm.params as params
@@ -113,7 +107,7 @@ PARAMETER CONFIGURATION
         print(f"{atom}", end = " ")
 
     selectAtoms = "\n\nEnter, separated by spaces, the atoms you want to parametrize (default: all):\n"
-    selectedAtoms = input(selectAtoms) or str(allAtoms)
+    selectedAtoms = input(selectAtoms) or " ".join(allAtoms)
 
     splitAtoms = selectedAtoms.split(" ")
     
@@ -194,7 +188,7 @@ There are four predefined optimization techniques:
         sleep(2)
         tools()
 
-    paramsPerRound = input("How many parameters to optimize each round? (minimum 3): ") or "3"
+    paramsPerRound = input("How many parameters to optimize each round? (minimum 3, currently only applies to random technique): ") or "3"
 
     try:
         pRound = int(paramsPerRound)
