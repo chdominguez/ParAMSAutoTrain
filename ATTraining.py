@@ -120,7 +120,7 @@ def optimize(configuration: ATShared.TrainConfiguration, blocks, interface):
         lastBlock = int(restart["lastblock_index"])
         print(f"Iterations left: {iterations}")
         print(f"Best forcefield: {bestffield}")
-        print(f"Last block index: {lastBlock}")
+        print(f"Last block index: {lastBlock}-\n")
 
     for i in range(iterations):
         for p in range(len(blocks)):
