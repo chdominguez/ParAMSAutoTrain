@@ -1,0 +1,5 @@
+Package: autotrain
+Version: 1.0-1
+Architecture: all
+Maintainer: Christian Domínguez Dalmases christian.dominguez@ub.edu
+Description: Simple parametrization of ReaxFF forcefields.
