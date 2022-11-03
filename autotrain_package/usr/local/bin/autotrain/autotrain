@@ -1,5 +1,4 @@
 #!/bin/bash
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 ############################################################
 # Help                                                     #
@@ -42,7 +41,7 @@ done
 
 if [ $# -eq 0 ]
   then
-    amspython $SCRIPT_DIR/src/AutoTraining.py
+    amspython /usr/local/bin/autotrain/src/AutoTraining.py
 else
-    amspython $SCRIPT_DIR/src/AutoTraining.py $1 > 'autotrain.log'
+    amspython /usr/local/bin/autotrain/src/AutoTraining.py $1 > 'autotrain.log'
 fi
