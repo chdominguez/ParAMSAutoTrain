@@ -167,8 +167,9 @@ def optimize(configuration: ATShared.TrainConfiguration, blocks, interface):
 
 def activate(params, interface):
     for p in interface:
-        if p in params:
-            p.is_active = True
+        for pp in params:
+            if p.name == pp.name:
+                p.is_active = True
     return interface
 
 def getAllWantedParams(interface: pms.ReaxFFParameters, interConf: ATShared.ParamInterface):
