@@ -107,6 +107,7 @@ def optimize(configuration: ATShared.TrainConfiguration, blocks, interface):
 
     if ATShared.verifyFiles(["restart.at.json"], abort=False):
         restart = ATShared.loadJSON("restart.at.json")
+        print("Restarting optimization from restart file.")
         checkpoint = True
     else:
         checkpoint = False    
@@ -117,6 +118,9 @@ def optimize(configuration: ATShared.TrainConfiguration, blocks, interface):
         iterations = int(restart["iterations_left"])
         bestffield = restart["bestffield"]
         lastBlock = int(restart["lastblock_index"])
+        print(f"Iterations left: {iterations}")
+        print(f"Best forcefield: {bestffield}")
+        print(f"Last block index: {lastBlock}")
 
     for i in range(iterations):
         for p in range(len(blocks)):
@@ -137,7 +141,10 @@ def optimize(configuration: ATShared.TrainConfiguration, blocks, interface):
             restart = ATShared.Restart
             restart.bestffield = bestffield
             restart.iterations_left = iterations - i - 1
-            restart.lastblock_index = p
+            if p + 1 == len(blocks):
+                restart.lastblock_index = 0
+            else:
+                restart.lastblock_index = p + 1
 
             ATShared.writeRestartJSON(restart)
 
