@@ -100,8 +100,8 @@ def optimize(configuration: ATShared.TrainConfiguration, blocks, interface):
 
     bestffield = ""
 
-    if ATShared.verifyFiles(["restart.at"], abort=False):
-        restart = ATShared.loadJSON("restart.at")
+    if ATShared.verifyFiles(["restart.at.json"], abort=False):
+        restart = ATShared.loadJSON("restart.at.json")
         checkpoint = True
     else:
         checkpoint = False    
