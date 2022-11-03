@@ -100,16 +100,44 @@ def optimize(configuration: ATShared.TrainConfiguration, blocks, interface):
 
     bestffield = ""
 
-    for i in range(int(configuration.optConf.iterations)):
-        for params in blocks:
+    if ATShared.verifyFiles(["restart.at"], abort=False):
+        restart = ATShared.loadJSON("restart.at")
+        checkpoint = True
+    else:
+        checkpoint = False    
+
+    iterations = int(configuration.optConf.iterations)
+
+    if checkpoint:
+        iterations = int(restart["iterations_left"])
+        bestffield = restart["bestffield"]
+        lastBlock = int(restart["lastblock_index"])
+
+    for i in range(iterations):
+        for p in range(len(blocks)):
+            if checkpoint:
+                if p == lastBlock:
+                    checkpoint = False
+                else:
+                    continue
             if bestffield != "":
                 interface = pms.ReaxFFParameters(bestffield)
-            active = activate(params, interface)
+            active = activate(blocks[p], interface)
             optimizer     = pms.CMAOptimizer(popsize=configuration.optConf.popsize, sigma=configuration.optConf.sigma, minsigma=configuration.optConf.minsigma)
             optimization = pms.Optimization(jc, data_sets, active, optimizer, loss=configuration.optConf.loss, callbacks=callbacks)
             optimization.optimize()
             optimization.summary()
             bestffield = optimization.workdir + "/training_set_results/best/ffield.ff"
+
+            restart = ATShared.Restart
+            restart.bestffield = bestffield
+            restart.iterations_left = iterations - i - 1
+            restart.lastblock_index = p
+
+            ATShared.writeRestartJSON(restart)
+
+
+
 
 
 def activate(params, interface):

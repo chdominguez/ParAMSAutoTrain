@@ -1,6 +1,5 @@
 from ATTraining import train
 
-
 def selectSubprogram():
     import os
     os.system('clear')
@@ -11,6 +10,8 @@ def selectSubprogram():
 This script uses the modules defined in PLAMS, a framework provided by the Amsterdam Modelling Suite (AMS)
     """
     print(description)
+
+    
 
     selection = input("Select:\n[1] Train a force field\n[2] Tools\n[3] Display help\n[Other] Exit\n") or "0"
     os.system('clear')

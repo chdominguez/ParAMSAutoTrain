@@ -3,6 +3,11 @@ import sys
 import json
 import os
 
+class Restart:
+    iterations_left = "1"
+    bestffield = ""
+    lastblock_index = "0"
+
 class tempFile:
     fileName = "autotrain.tmp"
 
@@ -110,15 +115,19 @@ def loadModules():
         print(f"Could not find the Python YAML module. Try installing it with pip3 install yaml")
         sys.exit(1)
 
-def verifyFiles(files):
+def verifyFiles(files, abort=True):
     from os.path import exists
 
     for file in files:
         if not exists(file):
-            print(f"ERROR! File {file} does not exist, aborting")
-            sleep(2)
-            import AutoTraining
-            AutoTraining.main()
+            if abort:
+                print(f"ERROR! File {file} does not exist, aborting")
+                sleep(2)
+                import AutoTraining
+                AutoTraining.main()
+            else:
+                return False
+    return True
 
 
 def optimizerToJSON(opt: OptimizerConf):
@@ -153,6 +162,15 @@ def filesToJSON(files: RequiredFiles):
                 "validation_set": files.validation_set
                 }
     return reqFiles
+
+def writeRestartJSON(restart: Restart):
+    restartJSON = {
+        "iterations_left": restart.iterations_left,
+        "bestffield": restart.bestffield,
+        "lastblock_index": restart.lastblock_index
+    } 
+
+    saveJSONToFile("restart.at", restartJSON)
 
 def writeJSON(trainConfig: TrainConfiguration):
     
