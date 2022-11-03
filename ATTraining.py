@@ -4,6 +4,7 @@ from tabnanny import verbose
 import scm.params as pms
 import ATShared
 from time import sleep
+import time
 import random
 
 def train(jsonAsARG: str = "NULL"):
@@ -13,6 +14,9 @@ Christian Domínguez
 https://github.com/chdominguez/ParAMSAutoTrain
 """
     print(autotrainInfo)
+    t = time.localtime()
+    current_time = time.strftime("%Y-%m-%d %H:%M:%S", t)
+    print(f"Started optimization at {current_time}")
 
     if jsonAsARG != "NULL":
         ATShared.verifyFiles([jsonAsARG])
@@ -73,6 +77,7 @@ def setupLogger(name):
     return logger
     
 def optimize(configuration: ATShared.TrainConfiguration, blocks, interface):
+
     jobcoltmp = ATShared.tempFile("jobcol", configuration.data.jobcol)
     joben = ATShared.tempFile("job_collection_engines.yaml", configuration.data.joben)
     jc = pms.JobCollection(jobcoltmp.fileName)
@@ -135,6 +140,19 @@ def optimize(configuration: ATShared.TrainConfiguration, blocks, interface):
             restart.lastblock_index = p
 
             ATShared.writeRestartJSON(restart)
+
+    print("Normal AutoTrain termination")
+
+    # Finished optimization, save final.ff
+    bestFile = ATShared.loadFileAsString(bestffield)
+    with open("final.ff", 'w') as f:
+        f.write(bestFile)
+
+    print("Saved best forcefield as final.ff")
+
+    t = time.localtime()
+    current_time = time.strftime("%Y-%m-%d %H:%M:%S", t)
+    print(f"Finished at {current_time}")
 
 
 
