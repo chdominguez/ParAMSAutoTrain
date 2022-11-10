@@ -5,6 +5,11 @@ import scm.params as params
 
 from ATTraining import train
 
+# Tab-autocomplete in input() function
+import readline
+readline.set_completer_delims(' \t\n=')
+readline.parse_and_bind("tab: complete")
+
 def validationSet():
     use_validation = input("Use a validation set? [y]/n: ") or "y"
 
@@ -335,10 +340,51 @@ def editAutoTrainJSON():
     
     tools()
 
+def trainingSetEditor():
+    print("ha")
+
+def fileExtractor():
+    description="""This tool extracts the training info from an autotran.json file. The output files are:
+initial.ff
+training_set.yaml
+validation_set.yaml (if any)
+job_collection.yaml
+job_collection_engines.yaml
+"""
+    print(description)
+    file = input("Enter file: ")
+
+    import ATShared
+
+    if not ATShared.verifyFiles([file]):
+        tools()
+    
+    configuration = ATShared.loadJSONIntoTrainConfiguration(file)
+    print("Extracting initial force field set...\n")
+    sleep(1)
+    initialff = ATShared.tempFile("training_set.yaml", configuration.data.initialff)
+    print("Extracting training set...\n")
+    sleep(1)
+    training_set = ATShared.tempFile("training_set.yaml", configuration.data.training_set)
+    print("Extracting validation set...\n")
+    sleep(1)
+    validation_set = ATShared.tempFile("validation_set.yaml", configuration.data.validation_set)
+    print("Extracting job collection...\n")
+    sleep(1)
+    job_collection = ATShared.tempFile("job_collection.yaml", configuration.data.jobcol)
+    print("Extracting job collection engines...\n")
+    sleep(1)
+    job_collection_engines = ATShared.tempFile("job_collection_engines.yaml", configuration.data.joben)
+
+    print("Files sucessfully extracted\n")
+    sleep(1)
+    tools()
 
 def tools():
     available_tools = """[1] AutoTrain.json generator
 [2] AutoTrain.json editor
+[3] Training set editor
+[4] File extractor
 [Other] Go back
 """
     os.system("clear")
@@ -351,6 +397,13 @@ def tools():
     if tool == "2":
         os.system("clear")
         editAutoTrainJSON()
+    if tool == "3":
+        os.system("clear")
+        trainingSetEditor()
+    if tool == "4":
+        os.system("clear")
+        fileExtractor()
+
     else:
         import AutoTraining
         AutoTraining.selectSubprogram()
