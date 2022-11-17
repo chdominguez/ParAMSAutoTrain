@@ -6,6 +6,12 @@ import ATShared
 from time import sleep
 import time
 import random
+import sys
+
+def printTime(msg: str = ""):
+    t = time.localtime()
+    current_time = time.strftime("%Y-%m-%d %H:%M:%S", t)
+    print(f"{msg} {current_time}")
 
 def train(jsonAsARG: str = "NULL"):
 
@@ -14,12 +20,14 @@ Christian Domínguez
 https://github.com/chdominguez/ParAMSAutoTrain
 """ 
     print(autotrainInfo)
-    t = time.localtime()
-    current_time = time.strftime("%Y-%m-%d %H:%M:%S", t)
-    print(f"Started optimization at {current_time}")
+    
+    printTime("Started at")
 
     if jsonAsARG != "NULL":
-        ATShared.verifyFiles([jsonAsARG])
+        if not ATShared.verifyFiles([jsonAsARG], abort=False):
+            print(f"\nError, input file {jsonAsARG} does not exist.\n")
+            printTime("Finished at")
+            sys.exit(1)
         configuration = ATShared.loadJSONIntoTrainConfiguration(jsonAsARG)
     else:
         configurationFile = input("Load training configuration file [autotrain.json]: ") or "autotrain.json"
@@ -157,9 +165,7 @@ def optimize(configuration: ATShared.TrainConfiguration, blocks, interface):
 
     print("Saved best forcefield as final.ff")
 
-    t = time.localtime()
-    current_time = time.strftime("%Y-%m-%d %H:%M:%S", t)
-    print(f"Finished at {current_time}")
+    printTime("Finished at")
 
 
 

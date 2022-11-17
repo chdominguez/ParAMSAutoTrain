@@ -4,7 +4,7 @@ def selectSubprogram():
     import os
     os.system('clear')
 
-    version = 1.1
+    version = 1.2
     print(f"Welcome to AutoTraining v{version}\n")
     description = """This software can help you with the training process of a reactive force field (namedly ReaxFF)
 This script uses the modules defined in PLAMS, a framework provided by the Amsterdam Modelling Suite (AMS)
