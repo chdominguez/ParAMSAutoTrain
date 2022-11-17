@@ -10,12 +10,12 @@ Help()
    echo
    echo "Syntax: "
    echo "autotrain"
-   echo "autotrain [file]"
+   echo "autotrain -i <input> -o <output>"
    echo "autotrain -h"
    echo
    echo "options:"
-   echo "[file]     Starts the optimization defined in the json file. Saves the log in autotrain.log"
-   echo "-h         Print this Help."
+   echo "-i <input> -o <output>    Starts the optimization defined in 'input' json file. Saves the log in 'output'"
+   echo "-h                         Print this Help."
    echo
    echo "If nothing is provided, the program starts normally."
    echo
@@ -25,13 +25,40 @@ Help()
 # Process the input options. Add options as needed.        #
 ############################################################
 # Get the options
-while getopts ":h" option; do
-   case $option in
-      h) # display Help
-         Help
-         exit;;
-   esac
+USING_OPTIONS=0
+input=""
+output=""
+while getopts ':i:o:h' opt; do
+  case "$opt" in
+    i)
+      USING_OPTIONS=1
+      input=${OPTARG}
+      ;;
+
+    o)
+      USING_OPTIONS=1
+      output=${OPTARG}
+      ;;
+
+    h)
+      Help
+      exit 0
+      ;;
+
+    :)
+      echo "Requires input and output"
+      echo "Usage: $(basename $0) -i <input> -o <output>"
+      exit 1
+      ;;
+
+    ?)
+      echo -e "Invalid command option. Usage:\n"
+      Help
+      exit 1
+      ;;
+  esac
 done
+shift "$(($OPTIND -1))"
 
 ############################################################
 ############################################################
@@ -39,9 +66,17 @@ done
 ############################################################
 ############################################################
 
-if [ $# -eq 0 ]
-  then
-    amspython /usr/local/bin/autotrain/src/AutoTraining.py
+if [ $USING_OPTIONS -eq 1 ] 
+   then
+      if [ "$input" == "" ] || [ "$output" == "" ]
+         then
+            echo "Requires input and output"
+            echo "Usage: $(basename $0) -i <input> -o <output>"
+            exit 1
+      else
+         echo "Running $input into $output..."
+         amspython /usr/local/bin/autotrain/src/AutoTraining.py $input > $output
+      fi
 else
-    amspython /usr/local/bin/autotrain/src/AutoTraining.py $1 > 'autotrain.log'
+   amspython /usr/local/bin/autotrain/src/AutoTraining.py
 fi
