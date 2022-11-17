@@ -339,8 +339,40 @@ def editAutoTrainJSON():
 	
 	tools()
 
-def addEnergies(toTraining: str, tojc: str):
+# Add reactants or products to the training set. Returns the energy, and the corresponding expression
+def addToTraining(type: str, jobcollection: params.JobCollection):
 	from scm.plams import Molecule
+	addEntries = True
+	expression = ""
+	toten = 0
+	currentE = 0
+	print(f"Enter {type}: ")
+	while (addEntries):
+		entryName = input("Name for the entry: ")
+		if entryName in jobcollection:
+			print("Entry already exists. Reusing geometry and energy data")
+			currentE = jobcollection[entryName].metadata["energy"]
+		else:
+			geofile = input("Enter xyz file: ") 
+			verifyFiles([geofile])
+			jce = params.JCEntry()
+			jce.settings.input.AMS.Task = 'SinglePoint'
+			jce.molecule = Molecule(geofile)
+			currentE = float(input("Energy (eV): ") or 0)
+			jce.metadata["energy"] = currentE
+			jobcollection.add_entry(entryName,jce)
+		sto = float(input("Stoichiometry [1.0]: ") or 1.0)
+		if type == "Reactants": 
+			expression += f"""-{sto}*energy("{entryName}")"""
+		if type == "Products":
+			expression += f"""+{sto}*energy("{entryName}")"""
+		toten += sto*currentE
+		addNewEntry = input(f"Add new {type}? [y]/n ") or "y"
+		if addNewEntry == "n":
+			addEntries = False
+	return toten, expression
+
+def addEnergies(toTraining: str, tojc: str):
 	ds = params.DataSet(toTraining)
 	jc = params.JobCollection(tojc)
 
@@ -349,72 +381,16 @@ def addEnergies(toTraining: str, tojc: str):
 	print(description)
 	addEntries = True
 	while (addEntries):
-		enterReactants = True
-		reactantsName = []
-		reactantsEnergy = []
-		reactantsChem = []
-		print("Enter reactants: ")
-		while (enterReactants):
-			entryName = input("Name for the entry: ") or "unnamed_"+str(len(reactantsName))
-			reactantsName.append(entryName)
 
-			if entryName in jc:
-				print("Entry already exists. Reusing geometry data")
-			else:
-				geofile = input("Enter xyz file: ") 
-				verifyFiles([geofile])
-				reactantGeo = Molecule(geofile)
-				jce = params.JCEntry()
-				jce.settings.input.AMS.Task = 'SinglePoint'
-				jce.molecule = reactantGeo
-				jc.add_entry(entryName,jce)
-
-			reactantsChem.append(float(input("Stoichiometry [1.0]: ") or 1.0))
-			reactantsEnergy.append(float(input("Energy (eV): ") or 0))
-
-			addNewEntry = input("Add new reactant? [y]/n ") or "y"
-			if addNewEntry == "n":
-				enterReactants = False
-
-		enterProds = True
-		prodsName = []
-		prodsEnergy = []
-		prodsChem = []
-		print("\nEnter products: ")
-		while (enterProds):
-			entryName = input("Name for the entry: ") or "unnamed_"+str(len(prodsName))
-			prodsName.append(entryName)
-
-			if entryName in jc:
-				print("Entry already exists. Reusing geometry data")
-			else:
-				geofile = input("Enter xyz file: ") 
-				verifyFiles([geofile])
-				prodGeo = Molecule(geofile)
-				jce = params.JCEntry()
-				jce.settings.input.AMS.Task = 'SinglePoint'
-				jce.molecule = prodGeo
-				jc.add_entry(entryName,jce)
-			
-			prodsChem.append(float(input("Stoichiometry [1.0]: ") or 1.0))
-			prodsEnergy.append(float(input("Energy (eV): ") or 0))
-
-			addNewEntry = input("Add new product? [y]/n ") or "y"
-			if addNewEntry == "n":
-				enterProds = False
+		reacts, expressionReact = addToTraining("Reactants", jc)
+		print("")
+		prods, expressionProd = addToTraining("Products", jc)
+		print("")
+		expression = expressionProd + expressionReact
+		energy = prods - reacts
 
 		weight = float(input("Weight of the entry [1.0]: ") or 1.0)
 		sigma = float(input("Sigma [0.54422]:") or 0.05442279126360184)
-
-		expression = ""
-		energy = 0
-
-		for i in range(len(prodsName)):
-			energy += prodsEnergy[i]
-			expression += f"""+{prodsChem[i]}*energy("{prodsName[i]}")"""
-		for i in range(len(reactantsName)):
-			energy -= reactantsEnergy[i]
-			expression += f"""-{reactantsChem[i]}*energy("{reactantsName[i]}")"""
 
 		ds.add_entry(expression,
 					weight=weight,
@@ -422,7 +398,8 @@ def addEnergies(toTraining: str, tojc: str):
 					unit=('eV', 27.21139563180092),
 					sigma=sigma)
 
-		
+		jc.store("job_collection.yaml")
+		ds.store("training_set.yaml")		
 		added = f"""======Added======
 Expression: {expression}
 Weight: {weight}
@@ -431,12 +408,10 @@ ReferenceValue: {energy}
 Unit: eV, 27.21139563180092
 ================="""
 		print(added)
-		addn = input("Add new entry? [y]/n: ") or "y"
+		addn = input("Add new expression? [y]/n: ") or "y"
 		if addn == "n":
 			addEntries = False
-	jc.store("job_collection.yaml")
-	ds.store("training_set.yaml")
-	print("Finished adding entries and saved files")
+	print("Finished adding expressions and saved files")
 	input("Press any key to continue...")
 	tools()
 
