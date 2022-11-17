@@ -12,16 +12,16 @@ AutoTrain has some features that make it appealing:
 * A Debian based Linux distribution
 
 # Installing
-1. [Download](https://github.com/chdominguez/ParAMSAutoTrain/releases/download/1.0/autotrain_1.0-1_all.deb) the latest release
-2. Install it with `sudo dpkg -i autotrain_1.0-1_all.deb`
+1. [Download](https://github.com/chdominguez/ParAMSAutoTrain/releases/download/1.2/autotrain_1.2-1_all.deb) the latest release
+2. Install it with `sudo dpkg -i autotrain_1.2-1_all.deb`
 3. Done!
 
 # Usage
- `autotrain` justs starts the program normally. There you can acess the training tools.
+ `autotrain` justs starts the program normally. There you can access the training tools.
 
  `autotrain -h` shows help.
  
- `autotrain [train.json]` starts training the force field with the configuration provided in the .json file. Using this option will save the output inside an autotrain.log file. 
+ `autotrain -i <input> -o <output>` starts training the force field with the configuration provided in the input json file. The logfile will be written in output.
 
 # License
 MIT License
