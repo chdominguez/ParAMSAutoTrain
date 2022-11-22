@@ -451,22 +451,16 @@ job_collection_engines.yaml
 		tools()
 	
 	configuration = ATShared.loadJSONIntoTrainConfiguration(file)
-	print("Extracting initial force field set...\n")
-	sleep(1)
-	initialff = ATShared.tempFile("training_set.yaml", configuration.data.initialff)
-	print("Extracting training set...\n")
-	sleep(1)
+	print("Extracting initial force field set...")
+	initialff = ATShared.tempFile("initial.ff", configuration.data.initialff)
+	print("Extracting training set...")
 	training_set = ATShared.tempFile("training_set.yaml", configuration.data.training_set)
-	print("Extracting validation set...\n")
-	sleep(1)
+	print("Extracting validation set...")
 	validation_set = ATShared.tempFile("validation_set.yaml", configuration.data.validation_set)
-	print("Extracting job collection...\n")
-	sleep(1)
+	print("Extracting job collection...")
 	job_collection = ATShared.tempFile("job_collection.yaml", configuration.data.jobcol)
-	print("Extracting job collection engines...\n")
-	sleep(1)
+	print("Extracting job collection engines...")
 	job_collection_engines = ATShared.tempFile("job_collection_engines.yaml", configuration.data.joben)
-
 	print("Files sucessfully extracted\n")
 	sleep(1)
 	tools()
@@ -524,12 +518,65 @@ Tool provided by Lenard Carroll in https://github.com/lenardcarroll/POSCARtoXYZ"
 	input(f"Converted {n}/{t} files. Press any key to continue...")
 	tools()
 
+# This function writes the reference data along the predicted data on the best force field for plotting purposes
+# Returns the header and the data ready to be written into a csv file
+def computePredictions(engine: params.Engine, jobcol: params.DataSet, data_set: params.DataSet):
+	dse = params.DataSetEvaluator(data_set)
+	print("Calculating predicted values...")
+	dse.run(jobcol, data_set, engine)
+	dse.group_by(('Extractor', 'Expression'))
+	predictions = dse.results["energy"].predictions
+	reference = dse.results["energy"].reference_values
+	expression = dse.results["energy"].expressions
+	header = ["expression","reference","prediction"]
+	data = []
+	for i in range(len(expression)):
+		data.append([expression[i], reference[i], predictions[i]])
+	return header, data
+
+def csvWritter(header, data, name="predictions.csv"):
+	print("Writting csv...")
+	import csv
+	with open(name, 'w', encoding='UTF8', newline='') as f:
+		writer = csv.writer(f)
+		# Write the header
+		writer.writerow(header)
+		# Write the data
+		writer.writerows(data)
+		
+
+def predictionTool():
+	import ATShared
+	json = input("Autotrain .json: ")
+	verifyFiles([json])
+	loaded_json = ATShared.loadJSONIntoTrainConfiguration(json)
+	ffield = input("Forcefield to evaluate (blank to use the one provided in the json file) ") or "NULL"
+	print("Loading files...")
+	if ffield == "NULL":
+		tmp = tempFile("tmp_ffield", loaded_json.data.initialff)
+		reaxFF = params.ReaxFFParameters(tmp.fileName)
+		tmp.destroy()
+	else:
+		reaxFF = params.ReaxFFParameters(ffield)
+
+	tmpjobcol = tempFile("tmp_jobcol", loaded_json.data.jobcol)
+	jobcol = params.JobCollection(tmpjobcol.fileName)
+	tmpjobcol.destroy()
+
+	tmptrainset = tempFile("tmp_trainset", loaded_json.data.training_set)
+	trainset = params.DataSet(tmptrainset.fileName)
+	tmptrainset.destroy()
+
+	header, data = computePredictions(reaxFF, jobcol, trainset)
+	csvWritter(header, data)
+
 def tools():
 	available_tools = """[1] AutoTrain.json generator
 [2] AutoTrain.json editor
 [3] Training set editor
 [4] File extractor
 [5] VASP to XYZ
+[6] CSV reference vs. prediction
 [Other] Go back
 """
 	os.system("clear")
@@ -551,6 +598,9 @@ def tools():
 	if tool == "5":
 		os.system("clear")
 		vaspConverter()
+	if tool == "6":
+		os.system("clear")
+		predictionTool()
 
 	else:
 		import AutoTraining
