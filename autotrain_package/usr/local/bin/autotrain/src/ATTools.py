@@ -348,7 +348,7 @@ def addToTraining(type: str, jobcollection: params.JobCollection):
 	currentE = 0
 	print(f"Enter {type}: ")
 	while (addEntries):
-		entryName = input("Name for the entry: ")
+		entryName = input("Name of the entry: ")
 		if entryName in jobcollection:
 			print("Entry already exists. Reusing geometry and energy data")
 			currentE = jobcollection[entryName].metadata["energy"]
@@ -415,11 +415,59 @@ Unit: eV, 27.21139563180092
 	input("Press any key to continue...")
 	tools()
 
+def addForces(trainfile, jobcol):
+	import scm
+	os.system("clear")
+	description = "This tool will add reference values for forces to selected atoms\n"
+	print(description)
+	ds = params.DataSet(trainfile)
+	jobcollection = params.JobCollection(jobcol)
+	addEntries = True
+	while (addEntries):
+		entryName = input("Name of the entry: ")
+		if entryName in jobcollection:
+			print("Entry already exists. Reusing geometry data")
+			molecule = jobcollection[entryName].molecule
+		else:
+			geofile = input("Enter xyz file: ") 
+			verifyFiles([geofile])
+			jce = params.JCEntry()
+			jce.settings.input.AMS.Task = 'SinglePoint'
+			molecule = scm.plams.Molecule(geofile)
+			jce.molecule = molecule
+			jobcollection.add_entry(entryName,jce)
+
+		sigma = float(input("Sigma [0.1542]:") or 0.1542662024289777)
+		atoms = len(molecule.atoms)
+
+		enable = input(f"Enable atoms (from {1} to {atoms} separated by spaces): ").split(" ")
+		components = ["x", "y", "z"]
+		for e in enable:
+			print(f"Atom {e}: {molecule[int(e)-1].symbol}")
+			expression = f'forces("{entryName}", atindex={int(e)-1})'
+			values = []
+			for c in components:
+				i = float(input(f"Value for component {c} [0]: ") or "0")
+				values.append(i)
+			ds.add_entry(expression,
+					reference=values,
+					unit=("eV/Angstrom", 51.422067476325886),
+					sigma=sigma)
+
+		jobcollection.store("job_collection.yaml")
+		ds.store("training_set.yaml")		
+		addn = input("Add new expression? [y]/n: ") or "y"
+		if addn == "n":
+			addEntries = False
+	print("Finished adding forces and saved files")
+	input("Press any key to continue...")
+	tools()
+
 
 def trainingSetEditor():
 	description = """Edit a training set:
 [1] Add Energies
-[X] Add Forces
+[2] Add Forces
 [Other] Exit
 """
 	print(description)
@@ -430,6 +478,11 @@ def trainingSetEditor():
 		jcfile = input("Enter job collection file [job_collection.yaml]: ") or "job_collection.yaml"
 		verifyFiles([trainfile, jcfile])
 		addEnergies(trainfile, jcfile)
+	elif choice == "2":
+		trainfile = input("Enter training set file [training_set.yaml]: ") or "training_set.yaml"
+		jcfile = input("Enter job collection file [job_collection.yaml]: ") or "job_collection.yaml"
+		verifyFiles([trainfile, jcfile])
+		addForces(trainfile, jcfile)
 	else:
 		tools()
 

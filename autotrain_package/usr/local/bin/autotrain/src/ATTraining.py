@@ -176,10 +176,6 @@ def optimize(configuration: ATShared.TrainConfiguration, blocks, interface):
 
 	printTime("Finished at")
 
-
-
-
-
 def activate(params, interface):
 	for p in interface:
 		for pp in params:
