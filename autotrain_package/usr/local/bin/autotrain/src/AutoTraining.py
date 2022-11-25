@@ -4,25 +4,26 @@ def selectSubprogram():
     import os
     os.system('clear')
 
-    version = "1.3"
+    version = "1.4"
     print(f"Welcome to AutoTraining v{version}\n")
     description = """This software can help you with the training process of a reactive force field (namedly ReaxFF)
 This script uses the modules defined in PLAMS, a framework provided by the Amsterdam Modelling Suite (AMS)
     """
     print(description)
 
-    
-
     selection = input("Select:\n[1] Train a force field\n[2] Tools\n[3] Display help\n[Other] Exit\n") or "0"
     os.system('clear')
     if selection == "1":
         import ATTraining
         ATTraining.train()
-    if selection == "2":
+    elif selection == "2":
         import ATTools
         ATTools.tools()
-    if selection == "3":
+    elif selection == "3":
         displayHelp()
+    else:
+        exit(0)
+    
 
 def displayHelp():
     faqs="""
