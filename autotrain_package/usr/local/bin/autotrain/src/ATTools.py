@@ -426,7 +426,7 @@ def addForces(trainfile, jobcol):
 	while (addEntries):
 		entryName = input("Name of the entry: ")
 		if entryName in jobcollection:
-			print("Entry already exists. Reusing geometry data")
+			print(f"{entryName} already exists. Reusing geometry data")
 			molecule = jobcollection[entryName].molecule
 		else:
 			geofile = input("Enter xyz file: ") 
@@ -440,15 +440,23 @@ def addForces(trainfile, jobcol):
 		sigma = float(input("Sigma [0.1542]:") or 0.1542662024289777)
 		atoms = len(molecule.atoms)
 
-		enable = input(f"Enable atoms (from {1} to {atoms} separated by spaces): ").split(" ")
+		setforce = float(input("Value to set forces to [0]: ") or "0")
+		enableatoms = input(f"Enable atoms from {1} to {atoms} separated by spaces or negative (-X) to count a range from the last atom to last-X: ").split(" ")
 		components = ["x", "y", "z"]
+		enable = ""
+		if int(enableatoms[0]) < 0:
+			for i in range(abs(int(enableatoms[0]))):
+				enable += f"{atoms-i} "
+			enable = enable.split(" ")
+			enable.pop()
+		else:
+			enable = enableatoms
 		for e in enable:
-			print(f"Atom {e}: {molecule[int(e)-1].symbol}")
+			print(f"Set atom {e} ({molecule[int(e)].symbol}) forces to {setforce} in {entryName}")
 			expression = f'forces("{entryName}", atindex={int(e)-1})'
 			values = []
 			for c in components:
-				i = float(input(f"Value for component {c} [0]: ") or "0")
-				values.append(i)
+				values.append(setforce)
 			ds.add_entry(expression,
 					reference=values,
 					unit=("eV/Angstrom", 51.422067476325886),
