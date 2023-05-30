@@ -142,6 +142,14 @@ PARAMETER CONFIGURATION
 				tools()
 
 	avoidAtoms = splitAvoidAtoms
+
+	allowRepeated = "\nAllow repeated atom in parameter? For example: Fe-Fe, O-O, H-O-H... [Y]/n\n"
+	allowRepeated = input(allowRepeated)
+
+	if allowRepeated == "N" or allowRepeated == "n":
+		allowRepeated = 0
+	else: 
+		allowRepeated = 1
 	
 	print(f"\n{len(blocks)} blocks:")
 	for block in blocks:
@@ -177,6 +185,7 @@ There are four predefined optimization techniques:
 [2] By atoms (optimize all parameters of each atom at a time)
 [3] By blocks (optimize a full block at a time)
 [4] By categories (optimize a single category at a time)
+[5] All at once
 """
 
 	selectOptimizationTechnique = input(availableTechniques) or "0"
@@ -188,32 +197,33 @@ There are four predefined optimization techniques:
 		sleep(2)
 		tools()
 
-	if optT > 4 or optT < 1:
+	if optT > 5 or optT < 1:
 		print(f"Technique {optT} does not exist. Aborting.\n")
 		sleep(2)
 		tools()
-
-	paramsPerRound = input("How many parameters to optimize each round? (minimum 3, currently only applies to random technique): ") or "3"
-
-	try:
-		pRound = int(paramsPerRound)
-	except:
-		print("Error selecting parameters per round. Aborting.\n")
-		sleep(2)
-		tools()
-
-	if pRound < 3:
-		print(f"Minimum parameters per round is 3. Aborting.\n")
-		sleep(2)
-		tools()
+	
+	pRound = 0
+	if optT == 1:
+		paramsPerRound = input("How many parameters to optimize each round? (minimum 3): ") or "3"
+		try:
+			pRound = int(paramsPerRound)
+		except:
+			print("Error selecting parameters per round. Aborting.\n")
+			sleep(2)
+			tools()
+		if pRound < 3:
+			print(f"Minimum parameters per round is 3. Aborting.\n")
+			sleep(2)
+			tools()
 
 	pInterface = ParamInterface()
+	pInterface.allowRepeated = allowRepeated
 	pInterface.atoms = atoms
 	pInterface.avoidAtoms = avoidAtoms
 	pInterface.blocks = blocks
 	pInterface.categos = categos
 	pInterface.optTechnique = selectOptimizationTechnique
-	pInterface.paramsPerRound = paramsPerRound
+	pInterface.paramsPerRound = pRound
 
 	return pInterface
 
@@ -221,7 +231,7 @@ def editParamConfig(loadedJSON):
 
 	ffield = loadedJSON["files"]["initialff"]
 
-	tmp = tempFile("ffield", ffield)
+	tmp = tempFile("ffieldtmp", ffield)
 
 	paramInfo="This tool can help you setting to active bluk parameters based upon atom type, block type or param category. For a more refined confgiuration, activate the parameters using ParAMS"
 	print(paramInfo)
@@ -441,7 +451,7 @@ def addForces(trainfile, jobcol):
 		atoms = len(molecule.atoms)
 
 		setforce = float(input("Value to set forces to [0]: ") or "0")
-		enableatoms = input(f"Enable atoms from {1} to {atoms} separated by spaces or negative (-X) to count a range from the last atom to last-X: ").split(" ")
+		enableatoms = input(f"Enable atoms from {1} to {atoms} separated by spaces or negative (-X) to count a range from the last atom to last-X. For example, when having 200 atoms, specifying -5 will enable atoms 196, 197, 198, 199 and 200").split(" ")
 		components = ["x", "y", "z"]
 		enable = ""
 		if int(enableatoms[0]) < 0:
@@ -631,6 +641,142 @@ def predictionTool():
 	header, data = computePredictions(reaxFF, jobcol, trainset)
 	csvWritter(header, data)
 
+def parameterList():
+	import ATTraining
+	import ATShared
+
+	description = "Print a set of parameter properties with ease from an autotrain.json file."
+	print(description)
+
+	configurationFile = input("Load training configuration file [autotrain.json]: ") or "autotrain.json"
+	ATShared.verifyFiles([configurationFile])
+	configuration = ATShared.loadJSONIntoTrainConfiguration(configurationFile)
+
+	tmp = ATShared.tempFile("ffieldtmp", configuration.data.initialff)
+	interface = params.ReaxFFParameters(tmp.fileName)
+	tmp.destroy()
+
+	wantedParams = ATTraining.getAllWantedParams(interface=interface, interConf=configuration.parameterInterface)
+	print("==========Configuration==========")
+	print(f"Wanted atoms: {' '.join(configuration.parameterInterface.atoms)}")
+	print(f"Avoiding: {' '.join(configuration.parameterInterface.avoidAtoms)}")
+	print(f"Blocks: {' '.join(configuration.parameterInterface.blocks)}")
+	print(f"Categories: {' '.join(configuration.parameterInterface.categos)}")
+	print(f"Allow repeated: {bool(configuration.parameterInterface.allowRepeated)}")
+	print(f"Wanted parameters: {len(wantedParams)}")
+	print("===========Parameters============")
+	row = ["Name", "Value", "Atoms", "Block", "Category"]
+	print("{: >20}\t{: >20}\t{: >20}\t{: >20}\t{: >20}".format(*row))
+	for param in wantedParams:
+		joinedAtoms = "-".join(param.atoms)
+		row = [param.name, param.value, joinedAtoms, param.block, param.metadata.category]
+		print("{: >20}\t{: >20}\t{: >20}\t{: >20}\t{: >20}".format(*row))
+	input("Press any key to continue...")
+
+def jobColList():
+	import ATTraining
+	import ATShared
+
+	description = "Prints the job collection IDs from an autotrain.json file."
+	print(description)
+
+	configurationFile = input("Load training configuration file [autotrain.json]: ") or "autotrain.json"
+	ATShared.verifyFiles([configurationFile])
+	configuration = ATShared.loadJSONIntoTrainConfiguration(configurationFile)
+
+	tmp = ATShared.tempFile("jobcoltmp", configuration.data.jobcol)
+	jc = params.JobCollection(tmp.fileName)
+	tmp.destroy()
+
+	for j in jc:
+		print(j)
+
+	input("Press any key to continue...")
+
+def computeOptimizations(engine: params.Engine, jobcol: params.DataSet, data_set: params.DataSet):
+
+	ts_engine = engine.get_engine()
+	ts_settings = ts_engine.settings
+	ts_engine.settings = ts_settings
+
+	opt_engine = engine.get_engine()
+	opt_settings = opt_engine.settings
+	opt_settings.input.ReaxFF.TaperBO = 'Yes'
+	opt_settings.input.ReaxFF.Torsions = '2013'
+	opt_settings.input.ReaxFF.Charges.DisableChecks = 'Yes'
+	opt_settings.input.ReaxFF.NonReactive = 'Yes'
+	opt_engine.settings = opt_settings
+
+	ec = params.EngineCollection()
+	ec.add_entry('minima', opt_engine)
+	ec.add_entry('ts', ts_engine)
+	
+	print("Tasks:")
+	new_jc = params.JobCollection()
+	# minima_jc = params.JobCollection()
+	# ts_jc = params.JobCollection()
+	# has_minima = False
+	# has_ts = False
+	for j in jobcol:
+		jce = jobcol[j]
+		if 'TS' in j:
+			#has_ts = True
+			jce.settings.input.AMS.Task = 'TransitionStateSearch'
+			jce.reference_engine = 'ts'
+			#ts_jc.add_entry(j, jce)
+			new_jc.add_entry(j, jce)
+		else:
+			#has_minima = True
+			jce.settings.input.AMS.Task = 'GeometryOptimization'
+			jce.reference_engine = 'minima'
+			#minima_jc.add_entry(j, jce)
+			new_jc.add_entry(j, jce)
+
+	dse = params.DataSetEvaluator()
+	print("Evaluating data set...")
+	dse.calculate_reference(new_jc, data_set, ec, overwrite=True, folder='optimization_results')
+
+	# if has_minima:
+	# 	print("Evaluating data set...")
+	# 	dse.run(minima_jc, data_set, opt_engine.settings, folder='optimization_results')
+
+	# if has_ts:
+	# 	print("Evaluating data set...")
+	# 	dse.run(ts_jc, data_set, ts_engine.settings, folder='optimization_results')
+
+	print("Finished...")
+
+def optimizeStructures():
+	import ATShared
+	
+	description = "Optimize the structures present in autotrain.json with a given forcefield"
+	print(description)
+
+	json = input("Autotrain .json: ")
+	verifyFiles([json])
+	loaded_json = ATShared.loadJSONIntoTrainConfiguration(json)
+	ffield = input("Forcefield to evaluate (blank to use the one provided in the json file) ") or "NULL"
+	print("Loading files...")
+	if ffield == "NULL":
+		tmp = tempFile("tmp_ffield", loaded_json.data.initialff)
+		reaxFF = params.ReaxFFParameters(tmp.fileName)
+		tmp.destroy()
+	else:
+		reaxFF = params.ReaxFFParameters(ffield)
+
+	tmpjobcol = tempFile("tmp_jobcol", loaded_json.data.jobcol)
+	jobcol = params.JobCollection(tmpjobcol.fileName)
+	tmpjobcol.destroy()
+
+	tmptrainset = tempFile("tmp_trainset", loaded_json.data.training_set)
+	trainset = params.DataSet(tmptrainset.fileName)
+	tmptrainset.destroy()
+
+	#header, data = computeOptimizations(reaxFF, jobcol, trainset)
+	#csvWritter(header, data, name="optimizations.csv")
+	computeOptimizations(reaxFF, jobcol, trainset)
+
+
 def tools():
 	available_tools = """[1] AutoTrain.json generator
 [2] AutoTrain.json editor
@@ -638,6 +784,9 @@ def tools():
 [4] File extractor
 [5] VASP to XYZ
 [6] CSV reference vs. prediction
+[7] Wanted parameters list
+[8] Job collection list
+[9] Optimize structures
 [Other] Go back
 """
 	os.system("clear")
@@ -662,6 +811,15 @@ def tools():
 	if tool == "6":
 		os.system("clear")
 		predictionTool()
+	if tool == "7":
+		os.system("clear")
+		parameterList()
+	if tool == "8":
+		os.system("clear")
+		jobColList()
+	if tool == "9":
+		os.system("clear")
+		optimizeStructures()
 
 	else:
 		import AutoTraining

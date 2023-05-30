@@ -38,12 +38,25 @@ https://github.com/chdominguez/ParAMSAutoTrain
 
 	print("Loading configuration\n")
 
-	tmp = ATShared.tempFile("ffield", configuration.data.initialff)
+	tmp = ATShared.tempFile("ffieldtmp", configuration.data.initialff)
 	interface = pms.ReaxFFParameters(tmp.fileName)
 	tmp.destroy()
 
 	print("Wanted parameters: ")
 	wantedParams = getAllWantedParams(interface=interface, interConf=configuration.parameterInterface)
+	print("==========Configuration==========")
+	print(f"Wanted atoms: {' '.join(configuration.parameterInterface.atoms)}")
+	print(f"Avoiding: {' '.join(configuration.parameterInterface.avoidAtoms)}")
+	print(f"Blocks: {' '.join(configuration.parameterInterface.blocks)}")
+	print(f"Categories: {' '.join(configuration.parameterInterface.categos)}")
+	print(f"Wanted parameters: {len(wantedParams)}")
+	print("===========Parameters============")
+	row = ["Name", "Value", "Atoms", "Block", "Category"]
+	print("{: >20}\t{: >20}\t{: >20}\t{: >20}\t{: >20}".format(*row))
+	for param in wantedParams:
+		joinedAtoms = "-".join(param.atoms)
+		row = [param.name, param.value, joinedAtoms, param.block, param.metadata.category]
+		print("{: >20}\t{: >20}\t{: >20}\t{: >20}\t{: >20}".format(*row))
 
 	if configuration.parameterInterface.optTechnique == "1":
 		blocks = randomParamsBlocks(configuration.parameterInterface.paramsPerRound, wantedParams)
@@ -57,6 +70,9 @@ https://github.com/chdominguez/ParAMSAutoTrain
 	elif configuration.parameterInterface.optTechnique == "4":
 		blocks = categoParamsBlocks(configuration.parameterInterface.categos, wantedParams)
 		print("\nOptimizing by categories\n")
+	elif configuration.parameterInterface.optTechnique == "5":
+		blocks = [wantedParams]
+		print("\nOptimizing all at once\n")
 	else:
 		print("\nNo technique was specified, using random parameters:\n")
 		sleep(1)
@@ -111,6 +127,7 @@ def optimize(configuration: ATShared.TrainConfiguration, blocks, interface):
 		data_sets = [data_set]
 
 	callbacks = setupCallbacks(configuration)
+	parallel = pms.ParallelLevels(parametervectors=8, jobs=1)
 
 	bestffield = ""
 
@@ -129,7 +146,7 @@ def optimize(configuration: ATShared.TrainConfiguration, blocks, interface):
 		lastBlock = int(restart["lastblock_index"])
 		print(f"Iterations left: {iterations}")
 		print(f"Best forcefield: {bestffield}")
-		print(f"Last block index: {lastBlock}-\n")
+		print(f"Last block index: {lastBlock}\n")
 
 	for i in range(iterations):
 		for p in range(len(blocks)):
@@ -141,7 +158,8 @@ def optimize(configuration: ATShared.TrainConfiguration, blocks, interface):
 			if bestffield != "":
 				interface = pms.ReaxFFParameters(bestffield)
 			active = activate(blocks[p], interface)
-			optimizer     = pms.CMAOptimizer(popsize=configuration.optConf.popsize, sigma=configuration.optConf.sigma, minsigma=configuration.optConf.minsigma)
+			optimizer    = pms.CMAOptimizer(popsize=configuration.optConf.popsize, sigma=configuration.optConf.sigma, minsigma=configuration.optConf.minsigma)
+			#optimization = pms.Optimization(jc, data_sets, active, optimizer, parallel=parallel, loss=configuration.optConf.loss, callbacks=callbacks)
 			optimization = pms.Optimization(jc, data_sets, active, optimizer, loss=configuration.optConf.loss, callbacks=callbacks)
 			optimization.optimize()
 			optimization.summary()
@@ -183,6 +201,13 @@ def activate(params, interface):
 				p.is_active = True
 	return interface
 
+def checkIfDuplicates(listOfElems):
+    ''' Check if given list contains any duplicates '''
+    if len(listOfElems) == len(set(listOfElems)):
+        return False
+    else:
+        return True
+
 def getAllWantedParams(interface: pms.ReaxFFParameters, interConf: ATShared.ParamInterface):
 	wantedParams = []
 	for param in interface:
@@ -192,7 +217,11 @@ def getAllWantedParams(interface: pms.ReaxFFParameters, interConf: ATShared.Para
 
 		if len([i for i in interConf.atoms if i in param.atoms]) > 0:
 			if len([i for i in interConf.avoidAtoms if i in param.atoms]) == 0:
-				complyAtoms = True
+				if bool(interConf.allowRepeated):
+					complyAtoms = True
+				else:
+					if not checkIfDuplicates(param.atoms):
+						complyAtoms = True
 		if param.block in interConf.blocks:
 			complyBlock = True
 			if param.block == "GEN":
@@ -201,7 +230,6 @@ def getAllWantedParams(interface: pms.ReaxFFParameters, interConf: ATShared.Para
 		if param.metadata.category in interConf.categos:
 			complyCatego = True
 		if complyAtoms and complyBlock and complyCatego:
-			print(param.name)
 			wantedParams.append(param)
 
 	return wantedParams
@@ -227,7 +255,8 @@ def atomParamsBlock(wantedAtoms, wantedParams):
 		for p in wantedParams:
 			if wa in p.atoms:
 				b.append(p)
-		paramBlocks.append(b)
+		if len(b) > 0:
+			paramBlocks.append(b)
 	return paramBlocks 
 
 def blockParams(wantedBlocks, wantedParams):
@@ -237,17 +266,20 @@ def blockParams(wantedBlocks, wantedParams):
 		for p in wantedParams:
 			if p.block == wblock:
 				b.append(p)
-		paramBlocks.append(b)
-	return paramBlocks
+		if len(b) > 0:
+			paramBlocks.append(b)
+	return paramBlocks	
 
 def categoParamsBlocks(wantedCategos, wantedParams):
 	paramBlocks = []
 	for wcatego in wantedCategos:
 		b = []
 		for p in wantedParams:
-			if wcatego == p.metadata.caregory:
+			if wcatego == p.metadata.category:
 				b.append(p)
-		paramBlocks.append(b)
+		if len(b) > 0:
+			paramBlocks.append(b)
+	return paramBlocks
 
 def setupOptimizerCallbacks(opt: ATShared.OptimizerConf):
 	optimizer = pms.CMAOptimizer(popsize=opt.popsize, sigma=opt.sigma, minsigma=opt.minsigma)

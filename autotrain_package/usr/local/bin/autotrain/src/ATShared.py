@@ -44,6 +44,7 @@ class ParamInterface:
     avoidAtoms = []
     optTechnique = "1"
     paramsPerRound = "3"
+    allowRepeated = 1
 
 class TrainConfiguration:
     name = "AutoTrain"
@@ -65,6 +66,7 @@ def loadJSONIntoTrainConfiguration(file):
     interface.avoidAtoms = jsonINTERFACE["avoidAtoms"]
     interface.blocks = jsonINTERFACE["blocks"]
     interface.categos = jsonINTERFACE["categos"]
+    interface.allowRepeated = jsonINTERFACE["allowRepeated"]
     configuration.parameterInterface = interface
     
     jsonDATA = loadedJSON["files"]
@@ -149,7 +151,8 @@ def interfaceToJSON(interface: ParamInterface):
         "blocks": interface.blocks,
         "categos": interface.categos,
         "optTechnique": interface.optTechnique,
-        "paramsPerRound": interface.paramsPerRound
+        "paramsPerRound": interface.paramsPerRound,
+        "allowRepeated": interface.allowRepeated
     }
     return interface
 
