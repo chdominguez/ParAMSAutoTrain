@@ -12,8 +12,8 @@ AutoTrain has some features that make it appealing:
 * A Debian based Linux distribution
 
 # Installing
-1. [Download](https://github.com/chdominguez/ParAMSAutoTrain/releases/download/1.4/autotrain_1.4-1_all.deb) the latest release
-2. Install it with `sudo dpkg -i autotrain_1.4-1_all.deb`
+1. [Download](https://github.com/chdominguez/ParAMSAutoTrain/releases/download/1.5/autotrain_1.5-1_all.deb) the latest release
+2. Install it with `sudo dpkg -i autotrain_1.5-1_all.deb`
 3. Done!
 
 # Usage
